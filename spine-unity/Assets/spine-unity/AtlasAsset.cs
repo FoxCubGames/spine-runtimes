@@ -37,6 +37,10 @@ using Spine;
 public class AtlasAsset : ScriptableObject {
 	public TextAsset atlasFile;
 	public Material[] materials;
+
+	// tsteil - added this so we can store a 2nd set of materials that use a different shader (the stencil mask shader)
+	public Material[] materialsMask;
+
 	private Atlas atlas;
 
 	public void Reset () {
@@ -81,13 +85,29 @@ public class MaterialsTextureLoader : TextureLoader {
 	public void Load (AtlasPage page, String path) {
 		String name = Path.GetFileNameWithoutExtension(path);
 		Material material = null;
-		foreach (Material other in atlasAsset.materials) {
+
+		// tsteil added support for mask mat
+		Material materialMask = null;
+
+		// tsteil - changed to not use foreach
+		//foreach (Material other in atlasAsset.materials) {
+		var mats = atlasAsset.materials;
+		for (int i = 0, n = mats.Length; i < n; ++i) {
+			var other = mats[i];
+
 			if (other.mainTexture == null) {
 				Debug.LogError("Material is missing texture: " + other.name, other);
 				return;
 			}
 			if (other.mainTexture.name == name) {
+				//Debug.LogWarning("found mat: " + other.name + ", " + other.mainTexture.name + ", " + path);
 				material = other;
+
+				// tsteil - mask mat
+				if (atlasAsset.materialsMask != null && atlasAsset.materialsMask.Length > i) {
+					materialMask = atlasAsset.materialsMask[i];
+				}
+
 				break;
 			}
 		}
@@ -96,6 +116,7 @@ public class MaterialsTextureLoader : TextureLoader {
 			return;
 		}
 		page.rendererObject = material;
+		page.rendererObjectMask = materialMask;
 
 		// Very old atlas files expected the texture's actual size to be used at runtime.
 		if (page.width == 0 || page.height == 0) {

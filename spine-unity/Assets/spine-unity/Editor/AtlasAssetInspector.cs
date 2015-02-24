@@ -41,10 +41,16 @@ using Spine;
 public class AtlasAssetInspector : Editor {
 	private SerializedProperty atlasFile, materials;
 
+	// tsteil - added mask materials
+	private SerializedProperty materialsMask;
+
 	void OnEnable () {
 		SpineEditorUtilities.ConfirmInitialization();
 		atlasFile = serializedObject.FindProperty("atlasFile");
 		materials = serializedObject.FindProperty("materials");
+
+		// tsteil - added
+		materialsMask = serializedObject.FindProperty("materialsMask");
 	}
 
 	override public void OnInspectorGUI () {
@@ -54,6 +60,10 @@ public class AtlasAssetInspector : Editor {
 		EditorGUI.BeginChangeCheck();
 		EditorGUILayout.PropertyField(atlasFile);
 		EditorGUILayout.PropertyField(materials, true);
+
+		// tsteil - added
+		EditorGUILayout.PropertyField(materialsMask, true);
+
 		if (EditorGUI.EndChangeCheck())
 			serializedObject.ApplyModifiedProperties();
 

@@ -53,6 +53,9 @@ public class SkeletonRenderer : MonoBehaviour {
 	public bool frontFacing;
 	public bool logErrors = false;
 
+	// tsteil - added
+	public bool useMaskMaterial;
+
 	[SpineSlot]
 	public string[] submeshSeparators = new string[0];
 
@@ -205,7 +208,14 @@ public class SkeletonRenderer : MonoBehaviour {
 			}
 
 			// Populate submesh when material changes.
-			Material material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
+
+			// tsteil - added support for mask material
+			Material material = null;
+			if (useMaskMaterial) {
+				material = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
+			} else {
+				material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
+			}
 
 			if ((lastMaterial != material && lastMaterial != null) || submeshSeparatorSlots.Contains(slot)) {
 				AddSubmesh(lastMaterial, submeshStartSlotIndex, i, submeshTriangleCount, submeshFirstVertex, false);

@@ -265,6 +265,10 @@ namespace Spine {
 		public TextureWrap uWrap;
 		public TextureWrap vWrap;
 		public Object rendererObject;
+
+		// tsteil - added support for mask material
+		public Object rendererObjectMask;
+
 		public int width, height;
 	}
 

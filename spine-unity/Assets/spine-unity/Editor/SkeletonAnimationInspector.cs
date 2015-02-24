@@ -37,11 +37,17 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 	protected SerializedProperty animationName, loop, timeScale;
 	protected bool isPrefab;
 
+	// tsteil - added use mask
+	protected SerializedProperty useMask;
+
 	protected override void OnEnable () {
 		base.OnEnable();
 		animationName = serializedObject.FindProperty("_animationName");
 		loop = serializedObject.FindProperty("loop");
 		timeScale = serializedObject.FindProperty("timeScale");
+
+		// tsteil - added
+		useMask = serializedObject.FindProperty("useMaskMaterial");
 
 		if (PrefabUtility.GetPrefabType(this.target) == PrefabType.Prefab)
 			isPrefab = true;
@@ -97,6 +103,9 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		EditorGUILayout.PropertyField(loop);
 		EditorGUILayout.PropertyField(timeScale);
 		component.timeScale = Math.Max(component.timeScale, 0);
+
+		// tsteil - added use mask material
+		EditorGUILayout.PropertyField(useMask);
 
 		EditorGUILayout.Space();
 

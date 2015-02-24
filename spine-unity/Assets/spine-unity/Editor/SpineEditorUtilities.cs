@@ -149,11 +149,18 @@ public class SpineEditorUtilities : AssetPostprocessor {
 	public static string editorGUIPath = "";
 	static Dictionary<int, GameObject> skeletonRendererTable;
 	static Dictionary<int, SkeletonUtilityBone> skeletonUtilityBoneTable;
-	public static float defaultScale = 0.01f;
+
+	// tsteil - changed default scale from 0.01f to 0.5f
+	public static float defaultScale = 0.5f;
+
 	public static float defaultMix = 0.2f;
 	public static string defaultShader = "Spine/Skeleton";
-	public static bool initialized;
 
+	// tsteil - added for mask material support
+	public static string defaultShaderMask = "Spine/Skeleton Masked";
+
+	public static bool initialized;
+	
 	static SpineEditorUtilities () {
 		Initialize();
 	}
@@ -552,7 +559,12 @@ public class SpineEditorUtilities : AssetPostprocessor {
 
 			if (!failed) {
 				atlasAssetMatch = a;
-				break;
+
+				// tsteil - default the GetMatchingAtlas so it tries to returns the 2x atlas
+				if (atlasAssetMatch.name.EndsWith("-2x_Atlas")) {
+					break;
+				}
+
 			}
 
 		}
@@ -634,6 +646,9 @@ public class SpineEditorUtilities : AssetPostprocessor {
 
 		atlasAsset.materials = new Material[pageFiles.Count];
 
+		// tsteil - setup mask materials array
+		atlasAsset.materialsMask = new Material[pageFiles.Count];
+		
 		for (int i = 0; i < pageFiles.Count; i++) {
 			string texturePath = assetPath + "/" + pageFiles[i];
 			Texture2D texture = (Texture2D)AssetDatabase.LoadAssetAtPath(texturePath, typeof(Texture2D));
@@ -665,9 +680,27 @@ public class SpineEditorUtilities : AssetPostprocessor {
 			mat.mainTexture = texture;
 			EditorUtility.SetDirty(mat);
 
+			// tsteil - now create the mask material
+			// copy and paste from the previous lines
+			string materialPathMask = assetPath + "/" + primaryName + "_mask_" + pageName + ".mat";
+			Material matMask = (Material)AssetDatabase.LoadAssetAtPath(materialPathMask, typeof(Material));
+
+			if (matMask == null) {
+				matMask = new Material(Shader.Find(defaultShaderMask));
+				AssetDatabase.CreateAsset(matMask, materialPathMask);
+			}
+
+			matMask.mainTexture = texture;
+			EditorUtility.SetDirty(matMask);
+			// tsteil - done
+
+
 			AssetDatabase.SaveAssets();
 
 			atlasAsset.materials[i] = mat;
+
+			// tsteil - save mask material to atlas
+			atlasAsset.materialsMask[i] = matMask;
 		}
 
 		if (AssetDatabase.GetAssetPath(atlasAsset) == "")
