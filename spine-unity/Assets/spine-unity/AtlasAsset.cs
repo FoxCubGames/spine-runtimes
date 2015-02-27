@@ -83,7 +83,8 @@ public class MaterialsTextureLoader : TextureLoader {
 	}
 	
 	public void Load (AtlasPage page, String path) {
-		String name = Path.GetFileNameWithoutExtension(path);
+		// tsteil - added ToLower()
+		String name = Path.GetFileNameWithoutExtension(path).ToLower();
 		Material material = null;
 
 		// tsteil added support for mask mat
@@ -99,7 +100,8 @@ public class MaterialsTextureLoader : TextureLoader {
 				Debug.LogError("Material is missing texture: " + other.name, other);
 				return;
 			}
-			if (other.mainTexture.name == name) {
+			// tsteil - added ToLower()
+			if (other.mainTexture.name.ToLower() == name) {
 				//Debug.LogWarning("found mat: " + other.name + ", " + other.mainTexture.name + ", " + path);
 				material = other;
 
