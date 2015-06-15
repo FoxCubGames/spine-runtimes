@@ -58,7 +58,7 @@ Shader "Spine/Skeleton Mask"
                 v2f OUT;
                 OUT.vertex = mul(UNITY_MATRIX_MVP, IN.vertex);
                 OUT.texcoord = IN.texcoord;
-                //OUT.color = IN.color;// * _Color;
+                OUT.color = IN.color;// * _Color;
  
                 return OUT;
             }

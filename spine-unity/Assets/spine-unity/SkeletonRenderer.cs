@@ -53,8 +53,38 @@ public class SkeletonRenderer : MonoBehaviour {
 	public bool frontFacing;
 	public bool logErrors = false;
 
+	// ###########################
 	// tsteil - added
+
+	/// <summary>
+	/// If true, will use the mask material from the atlas (uses a mask shader instead of the normal shader).
+	/// </summary>
 	public bool useMaskMaterial;
+
+	/// <summary>
+	/// The symbol mask that is generating the mask for this spine anim.
+	/// We need it because each mask has a unique id that has to match up between the masked object ("this") and the mask provider.
+	/// </summary>
+	public FCSymbolMask maskProvider;
+
+	/// <summary>
+	/// temp - the cloned mask material. this should be deleted when the title card spine anims are using unique atlases.
+	/// </summary>
+	public Material maskMaterial;
+
+	///// <summary>
+	///// if true, it will tell the mask provider when this object is being rendered via the OnWillRenderObject callback
+	///// </summary>
+	//public static bool runOnRenderMaskedObjectCallback;
+
+	/// <summary>
+	/// if true, tells us that this is a spine animation being rendered offscreen by multiple cameras,
+	/// so we should tell our mask provider that we're being rendered so it can change our unique mask id.
+	/// </summary>
+	public bool runOnRenderMaskedObjectCallback;
+
+	// tsteil - end of additions
+	// ###########################
 
 	[SpineSlot]
 	public string[] submeshSeparators = new string[0];
@@ -106,6 +136,7 @@ public class SkeletonRenderer : MonoBehaviour {
 		submeshMaterials.Clear();
 		submeshes.Clear();
 		skeleton = null;
+		maskMaterial = null;
 
 		valid = false;
 		if (!skeletonDataAsset) {
@@ -213,6 +244,17 @@ public class SkeletonRenderer : MonoBehaviour {
 			Material material = null;
 			if (useMaskMaterial) {
 				material = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
+
+				// tsteil - todo: temp solution. when we split up the lobby cards into multiple spine atlases, we should remove all this code that creates a new material
+				if (maskProvider != null) {
+					if (maskMaterial == null) {
+						maskMaterial = new Material(material);
+						maskMaterial.hideFlags = HideFlags.HideAndDontSave;
+						SetMaskId();
+					}
+					material = maskMaterial;
+				}
+
 			} else {
 				material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
 			}
@@ -377,6 +419,24 @@ public class SkeletonRenderer : MonoBehaviour {
 		}
 
 		useMesh1 = !useMesh1;
+	}
+
+	/// <summary>
+	/// tsteil - added this so we can change our unique mask id at runtime
+	/// </summary>
+	public void SetMaskId() {
+		maskMaterial.SetFloat("_UniqueId", maskProvider._uniqueId);
+	}
+
+	/// <summary>
+	/// tsteil - added this so we know when this object is being rendered, so we can change our unique mask id.
+	/// we need to do it this way because we have the same spine instance being rendered by multiple cameras and it needs a different mask id each time.
+	/// </summary>
+	void OnWillRenderObject() {
+		if (useMaskMaterial && maskMaterial != null && maskProvider != null && runOnRenderMaskedObjectCallback) {
+			maskProvider.OnRenderMaskedObject();
+			SetMaskId();
+		}
 	}
 
 	/** Stores vertices and triangles for a single material. */

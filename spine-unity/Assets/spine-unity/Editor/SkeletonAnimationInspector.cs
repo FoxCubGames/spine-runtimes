@@ -37,8 +37,8 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 	protected SerializedProperty animationName, loop, timeScale;
 	protected bool isPrefab;
 
-	// tsteil - added use mask
-	protected SerializedProperty useMask;
+	// tsteil - added the mask stuff
+	protected SerializedProperty useMask, maskProvider, runOnRenderMaskedObjectCallback;
 
 	protected override void OnEnable () {
 		base.OnEnable();
@@ -48,6 +48,8 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 
 		// tsteil - added
 		useMask = serializedObject.FindProperty("useMaskMaterial");
+		maskProvider = serializedObject.FindProperty("maskProvider");
+		runOnRenderMaskedObjectCallback = serializedObject.FindProperty("runOnRenderMaskedObjectCallback");
 
 		if (PrefabUtility.GetPrefabType(this.target) == PrefabType.Prefab)
 			isPrefab = true;
@@ -104,8 +106,10 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		EditorGUILayout.PropertyField(timeScale);
 		component.timeScale = Math.Max(component.timeScale, 0);
 
-		// tsteil - added use mask material
+		// tsteil - added mask stuff
 		EditorGUILayout.PropertyField(useMask);
+		EditorGUILayout.PropertyField(maskProvider);
+		EditorGUILayout.PropertyField(runOnRenderMaskedObjectCallback);
 
 		EditorGUILayout.Space();
 

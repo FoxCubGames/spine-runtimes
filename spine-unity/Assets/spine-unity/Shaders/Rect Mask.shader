@@ -5,6 +5,7 @@ Shader "Spine/Rect Mask"
         //_MainTex ("Sprite Texture", 2D) = "white" {}
         //_Color ("Tint", Color) = (1,1,1,1)
         //[MaterialToggle] PixelSnap ("Pixel snap", Float) = 0
+		_UniqueId ("Unique Id", Float) = 63
     }
  
     SubShader
@@ -27,7 +28,8 @@ Shader "Spine/Rect Mask"
         {
             Stencil
             {
-                Ref 1
+				WriteMask [_UniqueId]
+                Ref [_UniqueId]
                 Comp always
                 Pass replace
             }
@@ -57,6 +59,8 @@ Shader "Spine/Rect Mask"
             {
                 v2f OUT;
                 OUT.vertex = mul(UNITY_MATRIX_MVP, IN.vertex);
+	            OUT.texcoord = half2(0, 0);
+	            OUT.color = fixed4(0, 0, 0, 0);
                 //OUT.texcoord = IN.texcoord;
                 //OUT.color = IN.color * _Color;
  

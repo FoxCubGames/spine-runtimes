@@ -1,10 +1,10 @@
 ﻿/******************************************************************************
  * Spine Runtimes Software License
  * Version 2.1
- * 
+ *
  * Copyright (c) 2013, Esoteric Software
  * All rights reserved.
- * 
+ *
  * You are granted a perpetual, non-exclusive, non-sublicensable and
  * non-transferable license to install, execute and perform the Spine Runtimes
  * Software (the "Software") solely for internal use. Without the written
@@ -15,7 +15,7 @@
  * trademark, patent or other intellectual property or proprietary rights
  * notices on or in the Software, including any copy thereof. Redistributions
  * in binary or source form must include this license and terms.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -45,7 +45,7 @@ using Spine;
 
 /// <summary>
 /// [SUPPORTS]
-/// Linear, Constant, and Bezier Curves* 
+/// Linear, Constant, and Bezier Curves*
 /// Inverse Kinematics*
 /// Inherit Rotation
 /// Translate Timeline
@@ -53,16 +53,16 @@ using Spine;
 /// Scale Timeline**
 /// Event Timeline***
 /// Attachment Timeline
-/// 
+///
 /// RegionAttachment
 /// MeshAttachment
 /// SkinnedMeshAttachment
-/// 
+///
 /// [LIMITATIONS]
 /// *Inverse Kinematics & Bezier Curves are baked into the animation at 60fps and are not realtime. Use bakeIncrement constant to adjust key density if desired.
 /// **Non-uniform Scale Keys  (ie:  if ScaleX and ScaleY are not equal to eachother, it will not be accurate to Spine source)
 /// ***Events may only fire 1 type of data per event in Unity safely so priority to String data if present in Spine key, otherwise a Float is sent whether the Spine key was Int or Float with priority given to Int.
-/// 
+///
 /// [DOES NOT SUPPORT]
 /// FlipX or FlipY (Maybe one day)
 /// FFD (Unity does not provide access to BlendShapes with code)
@@ -159,7 +159,7 @@ public static class SkeletonBaker {
 					unusedClipNames.Remove(clip.name);
 				} else {
 					AssetDatabase.AddObjectToAsset(clip, controller);
-#if UNITY_5_0
+#if UNITY_5_0 || UNITY_5_1
 					controller.AddMotion(clip);
 #else
 					UnityEditorInternal.AnimatorController.AddAnimationClipToController(controller, clip);
@@ -397,7 +397,7 @@ public static class SkeletonBaker {
 			} else {
 				controller = (UnityEditor.Animations.AnimatorController)UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
 			}
-			
+
 		}
 #else
 		UnityEditorInternal.AnimatorController controller;

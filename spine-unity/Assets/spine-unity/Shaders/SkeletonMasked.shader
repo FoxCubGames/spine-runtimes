@@ -2,7 +2,9 @@ Shader "Spine/Skeleton Masked" {
 	Properties {
 		_Cutoff ("Shadow alpha cutoff", Range(0,1)) = 0.1
 		_MainTex ("Texture to blend", 2D) = "black" {}
+		_UniqueId ("Unique Id", Float) = 63
 	}
+
 	// 2 texture stage GPUs
 	SubShader {
 		Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" }
@@ -16,8 +18,9 @@ Shader "Spine/Skeleton Masked" {
 
 		Pass {
 		    Stencil {
-                Ref 1
-                Comp Equal
+				ReadMask [_UniqueId]
+                Ref [_UniqueId]
+                Comp equal
             }
 
 			ColorMaterial AmbientAndDiffuse
@@ -74,6 +77,7 @@ Shader "Spine/Skeleton Masked" {
 			ENDCG
 		}
 	}
+
 	// 1 texture stage GPUs
 	SubShader {
 		Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" }
@@ -85,6 +89,13 @@ Shader "Spine/Skeleton Masked" {
 		Lighting Off
 
 		Pass {
+
+		    Stencil {
+				ReadMask [_UniqueId]
+                Ref [_UniqueId]
+                Comp equal
+            }
+
 			ColorMaterial AmbientAndDiffuse
 			SetTexture [_MainTex] {
 				Combine texture * primary DOUBLE, texture * primary
