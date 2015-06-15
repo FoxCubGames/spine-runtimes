@@ -1,25 +1,26 @@
 /******************************************************************************
  * Spine Runtimes Software License
- * Version 2.1
+ * Version 2.3
  * 
- * Copyright (c) 2013, Esoteric Software
+ * Copyright (c) 2013-2015, Esoteric Software
  * All rights reserved.
  * 
  * You are granted a perpetual, non-exclusive, non-sublicensable and
- * non-transferable license to install, execute and perform the Spine Runtimes
- * Software (the "Software") solely for internal use. Without the written
- * permission of Esoteric Software (typically granted by licensing Spine), you
- * may not (a) modify, translate, adapt or otherwise create derivative works,
- * improvements of the Software or develop new applications using the Software
- * or (b) remove, delete, alter or obscure any trademarks or any copyright,
- * trademark, patent or other intellectual property or proprietary rights
- * notices on or in the Software, including any copy thereof. Redistributions
- * in binary or source form must include this license and terms.
+ * non-transferable license to use, install, execute and perform the Spine
+ * Runtimes Software (the "Software") and derivative works solely for personal
+ * or internal use. Without the written permission of Esoteric Software (see
+ * Section 2 of the Spine Software License Agreement), you may not (a) modify,
+ * translate, adapt or otherwise create derivative works, improvements of the
+ * Software or develop new applications using the Software or (b) remove,
+ * delete, alter or obscure any trademarks or any copyright, trademark, patent
+ * or other intellectual property or proprietary rights notices on or in the
+ * Software, including any copy thereof. Redistributions in binary or source
+ * form must include this license and terms.
  * 
  * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL ESOTERIC SOFTARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
  * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
@@ -92,7 +93,7 @@ public class SkeletonRenderer : MonoBehaviour {
 	[HideInInspector]
 	public List<Slot> submeshSeparatorSlots = new List<Slot>();
 
-
+	private MeshRenderer meshRenderer;
 	private MeshFilter meshFilter;
 	private Mesh mesh1, mesh2;
 	private bool useMesh1;
@@ -104,13 +105,14 @@ public class SkeletonRenderer : MonoBehaviour {
 	private Material[] sharedMaterials = new Material[0];
 	private readonly List<Material> submeshMaterials = new List<Material>();
 	private readonly List<Submesh> submeshes = new List<Submesh>();
-
+	private SkeletonUtilitySubmeshRenderer[] submeshRenderers;
 
 	public virtual void Reset () {
 		if (meshFilter != null)
 			meshFilter.sharedMesh = null;
-		if (GetComponent<Renderer>() != null)
-			GetComponent<Renderer>().sharedMaterial = null;
+
+		meshRenderer = GetComponent<MeshRenderer>();
+		if (meshRenderer != null) meshRenderer.sharedMaterial = null;
 
 		if (mesh1 != null) {
 			if (Application.isPlaying)
@@ -164,8 +166,16 @@ public class SkeletonRenderer : MonoBehaviour {
 			submeshSeparatorSlots.Add(skeleton.FindSlot(submeshSeparators[i]));
 		}
 
+		CollectSubmeshRenderers();
+
+		LateUpdate();
+
 		if (OnReset != null)
 			OnReset(this);
+	}
+
+	public void CollectSubmeshRenderers () {
+		submeshRenderers = GetComponentsInChildren<SkeletonUtilitySubmeshRenderer>();
 	}
 
 	public virtual void Awake () {
@@ -256,7 +266,11 @@ public class SkeletonRenderer : MonoBehaviour {
 				}
 
 			} else {
-				material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
+#if !SPINE_TK2D
+				Material material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
+#else
+				Material material = (rendererObject.GetType() == typeof(Material)) ? (Material)rendererObject : (Material)((AtlasRegion)rendererObject).page.rendererObject;
+#endif
 			}
 
 			if ((lastMaterial != material && lastMaterial != null) || submeshSeparatorSlots.Contains(slot)) {
@@ -277,7 +291,7 @@ public class SkeletonRenderer : MonoBehaviour {
 			submeshMaterials.CopyTo(sharedMaterials);
 		else
 			sharedMaterials = submeshMaterials.ToArray();
-		GetComponent<Renderer>().sharedMaterials = sharedMaterials;
+		meshRenderer.sharedMaterials = sharedMaterials;
 
 		// Ensure mesh data is the right size.
 		Vector3[] vertices = this.vertices;
@@ -322,8 +336,7 @@ public class SkeletonRenderer : MonoBehaviour {
 				color.r = (byte)(r * slot.r * regionAttachment.r * color.a);
 				color.g = (byte)(g * slot.g * regionAttachment.g * color.a);
 				color.b = (byte)(b * slot.b * regionAttachment.b * color.a);
-				if (slot.data.additiveBlending)
-					color.a = 0;
+				if (slot.data.blendMode == BlendMode.additive) color.a = 0;
 				colors[vertexIndex] = color;
 				colors[vertexIndex + 1] = color;
 				colors[vertexIndex + 2] = color;
@@ -350,8 +363,7 @@ public class SkeletonRenderer : MonoBehaviour {
 					color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
 					color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
 					color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
-					if (slot.data.additiveBlending)
-						color.a = 0;
+					if (slot.data.blendMode == BlendMode.additive) color.a = 0;
 
 					float[] meshUVs = meshAttachment.uvs;
 					float z = i * zSpacing;
@@ -371,8 +383,7 @@ public class SkeletonRenderer : MonoBehaviour {
 					color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
 					color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
 					color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
-					if (slot.data.additiveBlending)
-						color.a = 0;
+					if (slot.data.blendMode == BlendMode.additive) color.a = 0;
 
 					float[] meshUVs = meshAttachment.uvs;
 					float z = i * zSpacing;
@@ -418,6 +429,15 @@ public class SkeletonRenderer : MonoBehaviour {
 			}
 		}
 
+		if (submeshRenderers.Length > 0) {
+			foreach (var submeshRenderer in submeshRenderers) {
+				if (submeshRenderer.submeshIndex < sharedMaterials.Length)
+					submeshRenderer.SetMesh(meshRenderer, useMesh1 ? mesh1 : mesh2, sharedMaterials[submeshRenderer.submeshIndex]);
+				else
+					submeshRenderer.GetComponent<Renderer>().enabled = false;
+			}
+		}
+
 		useMesh1 = !useMesh1;
 	}
 
@@ -441,6 +461,7 @@ public class SkeletonRenderer : MonoBehaviour {
 
 	/** Stores vertices and triangles for a single material. */
 	private void AddSubmesh (Material material, int startSlot, int endSlot, int triangleCount, int firstVertex, bool lastSubmesh) {
+		
 		int submeshIndex = submeshMaterials.Count;
 		submeshMaterials.Add(material);
 
