@@ -1,10 +1,10 @@
 /******************************************************************************
  * Spine Runtimes Software License
  * Version 2.3
- * 
+ *
  * Copyright (c) 2013-2015, Esoteric Software
  * All rights reserved.
- * 
+ *
  * You are granted a perpetual, non-exclusive, non-sublicensable and
  * non-transferable license to use, install, execute and perform the Spine
  * Runtimes Software (the "Software") and derivative works solely for personal
@@ -16,7 +16,7 @@
  * or other intellectual property or proprietary rights notices on or in the
  * Software, including any copy thereof. Redistributions in binary or source
  * form must include this license and terms.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -40,7 +40,7 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 	protected bool isPrefab;
 
 	// tsteil - added the mask stuff
-	protected SerializedProperty useMask, maskProvider, runOnRenderMaskedObjectCallback;
+	protected SerializedProperty useMask, maskProvider, runOnRenderMaskedObjectCallback, overrideVertexColor, vertexColor;
 
 	protected override void OnEnable () {
 		base.OnEnable();
@@ -52,11 +52,11 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		useMask = serializedObject.FindProperty("useMaskMaterial");
 		maskProvider = serializedObject.FindProperty("maskProvider");
 		runOnRenderMaskedObjectCallback = serializedObject.FindProperty("runOnRenderMaskedObjectCallback");
+		overrideVertexColor = serializedObject.FindProperty("overrideVertexColor");
+		vertexColor = serializedObject.FindProperty("vertexColor");
 
 		if (PrefabUtility.GetPrefabType(this.target) == PrefabType.Prefab)
 			isPrefab = true;
-
-
 	}
 
 	protected override void gui () {
@@ -90,7 +90,7 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 				if (name == animationName.stringValue)
 					animationIndex = i + 1;
 			}
-		
+
 			animationIndex = EditorGUILayout.Popup("Animation", animationIndex, animations);
 
 			String selectedAnimationName = animationIndex == 0 ? null : animations[animationIndex];
@@ -110,6 +110,8 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		EditorGUILayout.PropertyField(useMask);
 		EditorGUILayout.PropertyField(maskProvider);
 		EditorGUILayout.PropertyField(runOnRenderMaskedObjectCallback);
+		EditorGUILayout.PropertyField(overrideVertexColor);
+		EditorGUILayout.PropertyField(vertexColor);
 
 		EditorGUILayout.Space();
 

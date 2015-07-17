@@ -1,10 +1,10 @@
 /******************************************************************************
  * Spine Runtimes Software License
  * Version 2.3
- * 
+ *
  * Copyright (c) 2013-2015, Esoteric Software
  * All rights reserved.
- * 
+ *
  * You are granted a perpetual, non-exclusive, non-sublicensable and
  * non-transferable license to use, install, execute and perform the Spine
  * Runtimes Software (the "Software") and derivative works solely for personal
@@ -16,7 +16,7 @@
  * or other intellectual property or proprietary rights notices on or in the
  * Software, including any copy thereof. Redistributions in binary or source
  * form must include this license and terms.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -54,8 +54,9 @@ public class SkeletonRenderer : MonoBehaviour {
 	public bool frontFacing;
 	public bool logErrors = false;
 
+
 	// ###########################
-	// tsteil - added
+	// tsteil, eugene - added
 
 	/// <summary>
 	/// If true, will use the mask material from the atlas (uses a mask shader instead of the normal shader).
@@ -73,6 +74,12 @@ public class SkeletonRenderer : MonoBehaviour {
 	/// </summary>
 	public Material maskMaterial;
 
+	/// <summary>
+	/// the mask id that our mask material is using.
+	/// if this changes and doesn't match up with the mask provider's id, we need to update our material's mask id
+	/// </summary>
+	public int maskId;
+
 	///// <summary>
 	///// if true, it will tell the mask provider when this object is being rendered via the OnWillRenderObject callback
 	///// </summary>
@@ -84,7 +91,10 @@ public class SkeletonRenderer : MonoBehaviour {
 	/// </summary>
 	public bool runOnRenderMaskedObjectCallback;
 
-	// tsteil - end of additions
+	public bool overrideVertexColor = false;
+	public Color vertexColor = Color.white;
+
+	// tsteil, eugene - end of additions
 	// ###########################
 
 	[SpineSlot]
@@ -182,6 +192,15 @@ public class SkeletonRenderer : MonoBehaviour {
 		Reset();
 	}
 
+	/// <summary>
+	/// tsteil - added this because our mask provider's mask id is set after this Awake() runs, so we need to set the mask id again in Start()
+	/// </summary>
+	void Start() {
+		if (runOnRenderMaskedObjectCallback == false && maskProvider != null && maskMaterial != null && maskId != maskProvider._uniqueId) {
+			SetMaskId();
+		}
+	}
+
 	public virtual void OnDestroy () {
 		if (mesh1 != null) {
 			if (Application.isPlaying)
@@ -253,23 +272,24 @@ public class SkeletonRenderer : MonoBehaviour {
 			// tsteil - added support for mask material
 			Material material = null;
 			if (useMaskMaterial) {
-				material = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
-
 				// tsteil - todo: temp solution. when we split up the lobby cards into multiple spine atlases, we should remove all this code that creates a new material
 				if (maskProvider != null) {
 					if (maskMaterial == null) {
-						maskMaterial = new Material(material);
-						maskMaterial.hideFlags = HideFlags.HideAndDontSave;
+						var prefabMat = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
+						material = new Material(prefabMat);
+						material.hideFlags = HideFlags.HideAndDontSave;
+						maskMaterial = material;
 						SetMaskId();
+					} else {
+						material = maskMaterial;
 					}
-					material = maskMaterial;
 				}
 
 			} else {
 #if !SPINE_TK2D
-				Material material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
+				material = (Material)((AtlasRegion)rendererObject).page.rendererObject;
 #else
-				Material material = (rendererObject.GetType() == typeof(Material)) ? (Material)rendererObject : (Material)((AtlasRegion)rendererObject).page.rendererObject;
+				material = (rendererObject.GetType() == typeof(Material)) ? (Material)rendererObject : (Material)((AtlasRegion)rendererObject).page.rendererObject;
 #endif
 			}
 
@@ -332,15 +352,25 @@ public class SkeletonRenderer : MonoBehaviour {
 				vertices[vertexIndex + 2] = new Vector3(tempVertices[RegionAttachment.X2], tempVertices[RegionAttachment.Y2], z);
 				vertices[vertexIndex + 3] = new Vector3(tempVertices[RegionAttachment.X3], tempVertices[RegionAttachment.Y3], z);
 
-				color.a = (byte)(a * slot.a * regionAttachment.a);
-				color.r = (byte)(r * slot.r * regionAttachment.r * color.a);
-				color.g = (byte)(g * slot.g * regionAttachment.g * color.a);
-				color.b = (byte)(b * slot.b * regionAttachment.b * color.a);
-				if (slot.data.blendMode == BlendMode.additive) color.a = 0;
-				colors[vertexIndex] = color;
-				colors[vertexIndex + 1] = color;
-				colors[vertexIndex + 2] = color;
-				colors[vertexIndex + 3] = color;
+				// Eugene - added
+				if (overrideVertexColor) {
+					color = vertexColor;
+
+					colors[vertexIndex] = color;
+					colors[vertexIndex + 1] = color;
+					colors[vertexIndex + 2] = color;
+					colors[vertexIndex + 3] = color;
+				} else {
+					color.a = (byte)(a * slot.a * regionAttachment.a);
+					color.r = (byte)(r * slot.r * regionAttachment.r * color.a);
+					color.g = (byte)(g * slot.g * regionAttachment.g * color.a);
+					color.b = (byte)(b * slot.b * regionAttachment.b * color.a);
+					if (slot.data.blendMode == BlendMode.additive) color.a = 0;
+					colors[vertexIndex] = color;
+					colors[vertexIndex + 1] = color;
+					colors[vertexIndex + 2] = color;
+					colors[vertexIndex + 3] = color;
+				}
 
 				float[] regionUVs = regionAttachment.uvs;
 				uvs[vertexIndex] = new Vector2(regionUVs[RegionAttachment.X1], regionUVs[RegionAttachment.Y1]);
@@ -359,11 +389,16 @@ public class SkeletonRenderer : MonoBehaviour {
 						this.tempVertices = tempVertices = new float[meshVertexCount];
 					meshAttachment.ComputeWorldVertices(slot, tempVertices);
 
-					color.a = (byte)(a * slot.a * meshAttachment.a);
-					color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
-					color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
-					color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
-					if (slot.data.blendMode == BlendMode.additive) color.a = 0;
+					// Eugene - added
+					if (overrideVertexColor) {
+						color = vertexColor;
+					} else {
+						color.a = (byte)(a * slot.a * meshAttachment.a);
+						color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
+						color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
+						color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
+						if (slot.data.blendMode == BlendMode.additive) color.a = 0;
+					}
 
 					float[] meshUVs = meshAttachment.uvs;
 					float z = i * zSpacing;
@@ -379,11 +414,16 @@ public class SkeletonRenderer : MonoBehaviour {
 						this.tempVertices = tempVertices = new float[meshVertexCount];
 					meshAttachment.ComputeWorldVertices(slot, tempVertices);
 
-					color.a = (byte)(a * slot.a * meshAttachment.a);
-					color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
-					color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
-					color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
-					if (slot.data.blendMode == BlendMode.additive) color.a = 0;
+					// Eugene - added
+					if (overrideVertexColor) {
+						color = vertexColor;
+					} else {
+						color.a = (byte)(a * slot.a * meshAttachment.a);
+						color.r = (byte)(r * slot.r * meshAttachment.r * color.a);
+						color.g = (byte)(g * slot.g * meshAttachment.g * color.a);
+						color.b = (byte)(b * slot.b * meshAttachment.b * color.a);
+						if (slot.data.blendMode == BlendMode.additive) color.a = 0;
+					}
 
 					float[] meshUVs = meshAttachment.uvs;
 					float z = i * zSpacing;
@@ -445,7 +485,8 @@ public class SkeletonRenderer : MonoBehaviour {
 	/// tsteil - added this so we can change our unique mask id at runtime
 	/// </summary>
 	public void SetMaskId() {
-		maskMaterial.SetFloat("_UniqueId", maskProvider._uniqueId);
+		maskId = maskProvider._uniqueId;
+		maskMaterial.SetFloat(FCSymbolMask.SHADER_UNIQUE_ID, maskId);
 	}
 
 	/// <summary>
@@ -461,7 +502,7 @@ public class SkeletonRenderer : MonoBehaviour {
 
 	/** Stores vertices and triangles for a single material. */
 	private void AddSubmesh (Material material, int startSlot, int endSlot, int triangleCount, int firstVertex, bool lastSubmesh) {
-		
+
 		int submeshIndex = submeshMaterials.Count;
 		submeshMaterials.Add(material);
 

@@ -156,7 +156,6 @@ public class SpineEditorUtilities : AssetPostprocessor {
 	public static float defaultScale = 0.5f;
 
 	static Dictionary<int, BoundingBoxFollower> boundingBoxFollowerTable;
-	public static float defaultScale = 0.01f;
 	public static float defaultMix = 0.2f;
 	public static string defaultShader = "Spine/Skeleton";
 
@@ -325,46 +324,47 @@ public class SpineEditorUtilities : AssetPostprocessor {
 			if (atlasMatch != null) {
 				IngestSpineProject(AssetDatabase.LoadAssetAtPath(sp, typeof(TextAsset)) as TextAsset, atlasMatch);
 			} else {
-				bool resolved = false;
-				while (!resolved) {
-					int result = EditorUtility.DisplayDialogComplex("Skeleton JSON Import Error!", "Could not find matching AtlasAsset for " + Path.GetFileNameWithoutExtension(sp), "Select", "Skip", "Abort");
-					switch (result) {
-						case -1:
-							Debug.Log("Select Atlas");
-							AtlasAsset selectedAtlas = GetAtlasDialog(Path.GetDirectoryName(sp));
-							if (selectedAtlas != null) {
-								localAtlases.Clear();
-								localAtlases.Add(selectedAtlas);
-								atlasMatch = GetMatchingAtlas(requiredPaths, localAtlases);
-								if (atlasMatch != null) {
-									resolved = true;
-									IngestSpineProject(AssetDatabase.LoadAssetAtPath(sp, typeof(TextAsset)) as TextAsset, atlasMatch);
-								}
-							}
+				//// tsteil - fuck this broken error
+				//bool resolved = false;
+				//while (!resolved) {
+				//	int result = EditorUtility.DisplayDialogComplex("Skeleton JSON Import Error!", "Could not find matching AtlasAsset for " + Path.GetFileNameWithoutExtension(sp), "Select", "Skip", "Abort");
+				//	switch (result) {
+				//		case -1:
+				//			Debug.Log("Select Atlas");
+				//			AtlasAsset selectedAtlas = GetAtlasDialog(Path.GetDirectoryName(sp));
+				//			if (selectedAtlas != null) {
+				//				localAtlases.Clear();
+				//				localAtlases.Add(selectedAtlas);
+				//				atlasMatch = GetMatchingAtlas(requiredPaths, localAtlases);
+				//				if (atlasMatch != null) {
+				//					resolved = true;
+				//					IngestSpineProject(AssetDatabase.LoadAssetAtPath(sp, typeof(TextAsset)) as TextAsset, atlasMatch);
+				//				}
+				//			}
 
-							break;
-						case 0:
-							var atlasList = MultiAtlasDialog(requiredPaths, Path.GetDirectoryName(sp), Path.GetFileNameWithoutExtension(sp));
+				//			break;
+				//		case 0:
+				//			var atlasList = MultiAtlasDialog(requiredPaths, Path.GetDirectoryName(sp), Path.GetFileNameWithoutExtension(sp));
 
-							if (atlasList != null)
-								IngestSpineProject(AssetDatabase.LoadAssetAtPath(sp, typeof(TextAsset)) as TextAsset, atlasList.ToArray());
+				//			if (atlasList != null)
+				//				IngestSpineProject(AssetDatabase.LoadAssetAtPath(sp, typeof(TextAsset)) as TextAsset, atlasList.ToArray());
 
-							resolved = true;
-							break;
+				//			resolved = true;
+				//			break;
 
-						case 1:
-							Debug.Log("Skipped importing: " + Path.GetFileName(sp));
-							resolved = true;
-							break;
+				//		case 1:
+				//			Debug.Log("Skipped importing: " + Path.GetFileName(sp));
+				//			resolved = true;
+				//			break;
 
 
-						case 2:
-							//abort
-							abortSkeletonImport = true;
-							resolved = true;
-							break;
-					}
-				}
+				//		case 2:
+				//			//abort
+				//			abortSkeletonImport = true;
+				//			resolved = true;
+				//			break;
+				//	}
+				//}
 			}
 
 			if (abortSkeletonImport)
