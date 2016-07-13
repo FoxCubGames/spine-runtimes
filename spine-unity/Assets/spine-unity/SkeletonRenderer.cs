@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 /******************************************************************************
  * Spine Runtimes Software License
  * Version 2.3
@@ -40,6 +46,13 @@ public class SkeletonRenderer : MonoBehaviour {
 
 	public delegate void SkeletonRendererDelegate (SkeletonRenderer skeletonRenderer);
 
+	/// <summary>
+	/// tsteil - runs when the skeleton animation is rendered the 1st time (when its rendered==true), then this callback is nulled out.
+	/// </summary>
+	public event SkeletonRendererDelegate OnRendered;
+	[System.NonSerialized]
+	public bool rendered;
+
 	public SkeletonRendererDelegate OnReset;
 	[System.NonSerialized]
 	public bool valid;
@@ -69,7 +82,7 @@ public class SkeletonRenderer : MonoBehaviour {
 	public FCSymbolMask maskProvider;
 
 	/// <summary>
-	/// temp - the cloned mask material. this should be deleted when the title card spine anims are using unique atlases.
+	///the cloned mask material. we have to clone it because we want to use different mask id's for the same spine objects (the same symbol on different reels, for example)
 	/// </summary>
 	public Material maskMaterial;
 
@@ -89,6 +102,11 @@ public class SkeletonRenderer : MonoBehaviour {
 	/// so we should tell our mask provider that we're being rendered so it can change our unique mask id.
 	/// </summary>
 	public bool runOnRenderMaskedObjectCallback;
+
+	/// <summary>
+	/// if set, will create a uv2 on the mesh that maps to a full sized texture (not using any atlas coords).
+	/// </summary>
+	public bool setupUv2;
 
 	public bool overrideVertexColor = false;
 	public Color vertexColor = Color.white;
@@ -110,6 +128,7 @@ public class SkeletonRenderer : MonoBehaviour {
 	private Vector3[] vertices;
 	private Color32[] colors;
 	private Vector2[] uvs;
+	private Vector2[] uvs2;
 	private Material[] sharedMaterials = new Material[0];
 	private readonly ExposedList<Material> submeshMaterials = new ExposedList<Material>();
 	private readonly ExposedList<Submesh> submeshes = new ExposedList<Submesh>();
@@ -135,6 +154,13 @@ public class SkeletonRenderer : MonoBehaviour {
 				Destroy(mesh2);
 			else
 				DestroyImmediate(mesh2);
+		}
+
+		if (maskMaterial != null) {
+			if (Application.isPlaying)
+				Destroy(maskMaterial);
+			else
+				DestroyImmediate(maskMaterial);
 		}
 
 		lastState = new LastState();
@@ -216,8 +242,16 @@ public class SkeletonRenderer : MonoBehaviour {
 				DestroyImmediate(mesh2);
 		}
 
+		if (maskMaterial != null) {
+			if (Application.isPlaying)
+				Destroy(maskMaterial);
+			else
+				DestroyImmediate(maskMaterial);
+		}
+
 		mesh1 = null;
 		mesh2 = null;
+		maskMaterial = null;
 	}
 
 	private Mesh newMesh () {
@@ -255,6 +289,7 @@ public class SkeletonRenderer : MonoBehaviour {
 
 		ExposedList<LastState.AddSubmeshArguments> addSubmeshArgumentsTemp = lastState.addSubmeshArgumentsTemp;
 		addSubmeshArgumentsTemp.Clear(false);
+		bool noRender = false;
 		for (int i = 0; i < drawOrderCount; i++) {
 			Slot slot = drawOrder.Items[i];
 			Bone bone = slot.bone;
@@ -299,7 +334,6 @@ public class SkeletonRenderer : MonoBehaviour {
 			// tsteil - added support for mask material
 			Material material = null;
 			if (useMaskMaterial) {
-				// tsteil - todo: temp solution. when we split up the lobby cards into multiple spine atlases, we should remove all this code that creates a new material
 				if (maskProvider != null) {
 					if (maskMaterial == null) {
 						var prefabMat = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
@@ -310,6 +344,8 @@ public class SkeletonRenderer : MonoBehaviour {
 					} else {
 						material = maskMaterial;
 					}
+				} else {
+					material = (Material)((AtlasRegion)rendererObject).page.rendererObjectMask;
 				}
 
 			} else {
@@ -335,11 +371,18 @@ public class SkeletonRenderer : MonoBehaviour {
 
 			attachmentsTriangleCountTemp.Items[i] = attachmentTriangleCount;
 		}
+
+		// tsteil - we need to keep track if we're rendering or not
+		if (lastMaterial == null) {
+			noRender = true;
+		}
+
 		addSubmeshArgumentsTemp.Add(
 			new LastState.AddSubmeshArguments(lastMaterial, submeshStartSlotIndex, drawOrderCount, submeshTriangleCount, submeshFirstVertex, true)
 			);
 		
 		bool mustUpdateMeshStructure = CheckIfMustUpdateMeshStructure(attachmentsTriangleCountTemp, attachmentsFlipStateTemp, addSubmeshArgumentsTemp);
+		var submeshMatCount = 0;
 		if (mustUpdateMeshStructure) {
 			submeshMaterials.Clear();
 			for (int i = 0, n = addSubmeshArgumentsTemp.Count; i < n; i++) {
@@ -356,11 +399,12 @@ public class SkeletonRenderer : MonoBehaviour {
 			}
 
 			// Set materials.
-			if (submeshMaterials.Count == sharedMaterials.Length)
+			submeshMatCount = submeshMaterials.Count;
+			if (submeshMatCount == sharedMaterials.Length) {
 				submeshMaterials.CopyTo(sharedMaterials);
-			else
+			} else {
 				sharedMaterials = submeshMaterials.ToArray();
-
+			}
 			meshRenderer.sharedMaterials = sharedMaterials;
 		}
 
@@ -372,13 +416,17 @@ public class SkeletonRenderer : MonoBehaviour {
 			this.vertices = vertices = new Vector3[vertexCount];
 			this.colors = new Color32[vertexCount];
 			this.uvs = new Vector2[vertexCount];
+			if (setupUv2) {
+				this.uvs2 = new Vector2[vertexCount];
+			}
 			mesh1.Clear();
 			mesh2.Clear();
 		} else {
 			// Too many vertices, zero the extra.
 			Vector3 zero = Vector3.zero;
-			for (int i = vertexCount, n = lastState.vertexCount ; i < n; i++)
+			for (int i = vertexCount, n = lastState.vertexCount; i < n; i++) {
 				vertices[i] = zero;
+			}
 		}
 		lastState.vertexCount = vertexCount;
 
@@ -386,6 +434,7 @@ public class SkeletonRenderer : MonoBehaviour {
 		float zSpacing = this.zSpacing;
 		float[] tempVertices = this.tempVertices;
 		Vector2[] uvs = this.uvs;
+		Vector2[] uvs2 = this.uvs2;
 		Color32[] colors = this.colors;
 		int vertexIndex = 0;
 		Color32 color;
@@ -509,6 +558,7 @@ public class SkeletonRenderer : MonoBehaviour {
 					}
 
 					float[] meshUVs = meshAttachment.uvs;
+
 					float z = i * zSpacing;
 					for (int ii = 0; ii < meshVertexCount; ii += 2, vertexIndex++) {
 						vertices[vertexIndex].x = tempVertices[ii];
@@ -578,16 +628,46 @@ public class SkeletonRenderer : MonoBehaviour {
 		mesh.colors32 = colors;
 		mesh.uv = uvs;
 
+		// tsteil - added UV2 stuff
+		if (setupUv2) {
+			float minX = 1f;
+			float minY = 1f;
+			float maxX = 0f;
+			float maxY = 0f;
+			float sizeX = 0f;
+			float sizeY = 0f;
+			
+			// go through our vertices and find the min and max so we can normalize the UVs against it
+			for (int i = 0; i < vertexCount; ++i) {
+				var x = vertices[i].x;
+				var y = vertices[i].y;
+				if (x < minX) { minX = x; } else if (x > maxX) { maxX = x; }
+				if (y < minY) { minY = y; } else if (y > maxY) { maxY = y; }
+			}
+			sizeX = maxX - minX;
+			sizeY = maxY - minY;
+
+			// now set the uvs2
+			for (int i = 0; i < vertexCount; ++i) {
+				uvs2[i].x = (vertices[i].x - minX) / sizeX;
+				uvs2[i].y = (vertices[i].y - minY) / sizeY;
+			}
+			mesh.uv2 = uvs2;
+		}
+
 		if (mustUpdateMeshStructure) {
-			int submeshCount = submeshMaterials.Count;
+			int submeshCount = submeshMatCount;
 			mesh.subMeshCount = submeshCount;
 			for (int i = 0; i < submeshCount; ++i)
 				mesh.SetTriangles(submeshes.Items[i].triangles, i);
 		}
 
-		Vector3 meshBoundsExtents = meshBoundsMax - meshBoundsMin;
-		Vector3 meshBoundsCenter = meshBoundsMin + meshBoundsExtents * 0.5f;
-		mesh.bounds = new Bounds(meshBoundsCenter, meshBoundsExtents);
+		// tsteil: if we're not rendering, we dont need to calculate the bounds (this fixes the crazy AABB math errors)
+		if (noRender == false) {
+			Vector3 meshBoundsExtents = meshBoundsMax - meshBoundsMin;
+			Vector3 meshBoundsCenter = meshBoundsMin + meshBoundsExtents * 0.5f;
+			mesh.bounds = new Bounds(meshBoundsCenter, meshBoundsExtents);
+		}
 
 		if (newTriangles && calculateNormals) {
 			Vector3[] normals = new Vector3[vertexCount];
@@ -649,13 +729,27 @@ public class SkeletonRenderer : MonoBehaviour {
 
 		useMesh1 = !useMesh1;
 	}
+	
+#if UNITY_EDITOR
+	/// <summary>
+	/// only used by the fc mask tester (right now)
+	/// </summary>
+	public void SetMaskId(int newMaskId) {
+		if (maskMaterial != null) {
+			maskId = newMaskId;
+			maskMaterial.SetFloat(FCSymbolMask.SHADER_UNIQUE_ID, maskId);
+		}
+	}
+#endif
 
 	/// <summary>
 	/// tsteil - added this so we can change our unique mask id at runtime
 	/// </summary>
 	public void SetMaskId() {
-		maskId = maskProvider._uniqueId;
-		maskMaterial.SetFloat(FCSymbolMask.SHADER_UNIQUE_ID, maskId);
+		if (maskMaterial != null) {
+			maskId = maskProvider._uniqueId;
+			maskMaterial.SetFloat(FCSymbolMask.SHADER_UNIQUE_ID, maskId);
+		}
 	}
 
 	/// <summary>
@@ -663,6 +757,12 @@ public class SkeletonRenderer : MonoBehaviour {
 	/// we need to do it this way because we have the same spine instance being rendered by multiple cameras and it needs a different mask id each time.
 	/// </summary>
 	void OnWillRenderObject() {
+		rendered = true;
+		if (valid && OnRendered != null) {
+			OnRendered(this);
+			OnRendered = null;
+		}
+
 		if (useMaskMaterial && maskMaterial != null && maskProvider != null && runOnRenderMaskedObjectCallback) {
 			maskProvider.OnRenderMaskedObject();
 			SetMaskId();

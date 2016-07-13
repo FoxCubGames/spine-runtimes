@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 ﻿/*****************************************************************************
  * SkeletonRagdoll2D added by Mitch Thompson
  * Full irrevocable rights and permissions granted to Esoteric Software
@@ -10,7 +16,7 @@ using System.Collections.Generic;
 
 [CustomEditor(typeof(SkeletonRagdoll2D))]
 public class SkeletonRagdoll2DInspector : Editor {
-	SerializedProperty startingBoneName, stopBoneNames, applyOnStart, pinStartBone, enableJointCollision, gravityScale, disableIK, thickness, rotationLimit, colliderLayer, mix, rootMass, massFalloffFactor;
+	SerializedProperty startingBoneName, stopBoneNames, applyOnStart, pinStartBone, /*enableJointCollision,*/ gravityScale, disableIK, thickness, rotationLimit, colliderLayer, mix, rootMass, massFalloffFactor;
 
 	void OnEnable () {
 		startingBoneName = serializedObject.FindProperty("startingBoneName");

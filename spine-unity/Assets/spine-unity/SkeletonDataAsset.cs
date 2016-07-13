@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 /******************************************************************************
  * Spine Runtimes Software License
  * Version 2.3
@@ -98,7 +104,13 @@ public class SkeletonDataAsset : ScriptableObject {
 
 		if (skeletonData != null)
 			return skeletonData;
-		
+
+
+#if UNITY_EDITOR || !RELEASE
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		bool isBinary = false;
+#endif
+
 		AttachmentLoader attachmentLoader;
 		float skeletonDataScale;
 
@@ -121,22 +133,22 @@ public class SkeletonDataAsset : ScriptableObject {
 #endif
 
 		try {
-			//var stopwatch = new System.Diagnostics.Stopwatch();
 			if (skeletonJSON.name.ToLower().Contains(".skel")) {
+#if UNITY_EDITOR || !RELEASE
+				isBinary = true;
+#endif
 				var input = new MemoryStream(skeletonJSON.bytes);
 				var binary = new SkeletonBinary(attachmentLoader);
 				binary.Scale = skeletonDataScale;
-				//stopwatch.Start();
 				skeletonData = binary.ReadSkeletonData(input);
 			} else {
+				// tsteil - added this error
+				Debug.LogError("Spine animation using json text, it should use binary! " + name);
 				var input = new StringReader(skeletonJSON.text);
 				var json = new SkeletonJson(attachmentLoader);
 				json.Scale = skeletonDataScale;
-				//stopwatch.Start();
 				skeletonData = json.ReadSkeletonData(input);
 			}
-			//stopwatch.Stop();
-			//Debug.Log(stopwatch.Elapsed);
 		} catch (Exception ex) {
 			if (!quiet)
 				Debug.LogError("Error reading skeleton JSON file for SkeletonData asset: " + name + "\n" + ex.Message + "\n" + ex.StackTrace, this);
@@ -145,6 +157,14 @@ public class SkeletonDataAsset : ScriptableObject {
 
 		stateData = new AnimationStateData(skeletonData);
 		FillStateData();
+
+#if UNITY_EDITOR || !RELEASE
+		// tsteil - added some perf tracking
+		stopwatch.Stop();
+		if (isBinary == false) {
+			Debug.LogWarning(string.Format("Spine SkeletonDataAsset: {0} ({2}) created in {1:N4} seconds.", name, stopwatch.Elapsed.TotalSeconds, isBinary ? "binary" : "text"));
+		}
+#endif
 
 		return skeletonData;
 	}

@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 ﻿//
 // System.Collections.Generic.List
 //

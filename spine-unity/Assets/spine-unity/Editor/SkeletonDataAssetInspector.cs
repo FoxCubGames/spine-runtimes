@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 
 
 /*****************************************************************************
@@ -485,7 +491,7 @@ public class SkeletonDataAssetInspector : Editor {
 	//preview window stuff
 	private PreviewRenderUtility m_previewUtility;
 	private GameObject m_previewInstance;
-	private Vector2 previewDir;
+    //private Vector2 previewDir;
 	private SkeletonAnimation m_skeletonAnimation;
 	//private SkeletonData m_skeletonData;
 	private static int sliderHash = "Slider".GetHashCode();

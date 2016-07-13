@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 ﻿/*****************************************************************************
  * SkeletonRagdoll added by Mitch Thompson
  * Full irrevocable rights and permissions granted to Esoteric Software

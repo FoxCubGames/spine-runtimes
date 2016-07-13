@@ -1,3 +1,9 @@
+#if !UNITY_EDITOR || FCLOG
+using Debug = FC.Debug;
+#else
+using Debug = UnityEngine.Debug;
+#endif
+
 /******************************************************************************
  * Spine Runtimes Software License
  * Version 2.3
@@ -40,7 +46,7 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 	protected bool isPrefab;
 
 	// tsteil - added the mask stuff
-	protected SerializedProperty useMask, maskProvider, runOnRenderMaskedObjectCallback, overrideVertexColor, vertexColor;
+	protected SerializedProperty useMask, maskProvider, runOnRenderMaskedObjectCallback, overrideVertexColor, vertexColor, setupUv2;
 
 	protected override void OnEnable () {
 		base.OnEnable();
@@ -54,6 +60,7 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		runOnRenderMaskedObjectCallback = serializedObject.FindProperty("runOnRenderMaskedObjectCallback");
 		overrideVertexColor = serializedObject.FindProperty("overrideVertexColor");
 		vertexColor = serializedObject.FindProperty("vertexColor");
+		setupUv2 = serializedObject.FindProperty("setupUv2");
 
 		if (PrefabUtility.GetPrefabType(this.target) == PrefabType.Prefab)
 			isPrefab = true;
@@ -112,6 +119,7 @@ public class SkeletonAnimationInspector : SkeletonRendererInspector {
 		EditorGUILayout.PropertyField(runOnRenderMaskedObjectCallback);
 		EditorGUILayout.PropertyField(overrideVertexColor);
 		EditorGUILayout.PropertyField(vertexColor);
+		EditorGUILayout.PropertyField(setupUv2);
 
 		EditorGUILayout.Space();
 
